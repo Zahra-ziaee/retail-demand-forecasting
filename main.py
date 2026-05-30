@@ -1,3 +1,6 @@
+import pandas as pd
+
+from src.config import RESULTS_DIR
 from src.data_loader import load_raw_superstore_data, print_data_summary
 from src.forecasting import (
     create_lag_features,
@@ -13,6 +16,7 @@ from src.preprocessing import (
 )
 from src.utils import print_section
 from src.visualization import (
+    plot_forecast_vs_actual,
     plot_forecasted_demand,
     plot_historical_monthly_demand,
     plot_inventory_risk,
@@ -56,9 +60,14 @@ def main():
     print(inventory_df)
 
     print_section("Visualizations")
+
+    forecast_vs_actual_file = RESULTS_DIR / "forecast_vs_actual.csv"
+    forecast_vs_actual_df = pd.read_csv(forecast_vs_actual_file)
+
     plot_historical_monthly_demand(monthly_demand_df)
     plot_forecasted_demand(forecast_df)
     plot_inventory_risk(inventory_df)
+    plot_forecast_vs_actual(forecast_vs_actual_df)
 
 
 if __name__ == "__main__":

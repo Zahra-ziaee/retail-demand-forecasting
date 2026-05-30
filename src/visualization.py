@@ -77,3 +77,48 @@ def plot_inventory_risk(inventory_df: pd.DataFrame) -> None:
     plt.close()
 
     print(f"Saved chart: {output_path}")
+
+
+def plot_forecast_vs_actual(forecast_vs_actual_df: pd.DataFrame) -> None:
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    for category, category_df in forecast_vs_actual_df.groupby("category"):
+        category_df = category_df.sort_values("order_year_month")
+
+        plt.figure(figsize=(10, 5))
+
+        plt.plot(
+            category_df["order_year_month"],
+            category_df["actual_quantity"],
+            marker="o",
+            label="Actual Demand",
+        )
+
+        plt.plot(
+            category_df["order_year_month"],
+            category_df["model_prediction"],
+            marker="o",
+            label="Model Forecast",
+        )
+
+        plt.plot(
+            category_df["order_year_month"],
+            category_df["baseline_prediction"],
+            marker="o",
+            label="Naive Baseline",
+        )
+
+        plt.title(f"Forecast vs Actual - {category}")
+        plt.xlabel("Month")
+        plt.ylabel("Quantity")
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.tight_layout()
+
+        safe_category_name = category.lower().replace(" ", "_")
+        output_path = FIGURES_DIR / f"forecast_vs_actual_{safe_category_name}.png"
+
+        plt.savefig(output_path, dpi=300)
+        plt.close()
+
+        print(f"Saved chart: {output_path}")

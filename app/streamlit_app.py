@@ -16,12 +16,25 @@ def load_outputs():
     forecast = pd.read_csv(RESULTS_DIR / "demand_forecast.csv")
     inventory = pd.read_csv(RESULTS_DIR / "inventory_recommendations.csv")
     metrics = pd.read_csv(RESULTS_DIR / "forecast_metrics.csv")
+    category_metrics = pd.read_csv(RESULTS_DIR / "category_forecast_metrics.csv")
+    forecast_vs_actual = pd.read_csv(RESULTS_DIR / "forecast_vs_actual.csv")
 
-    return monthly_demand, forecast, inventory, metrics
+    return (
+        monthly_demand,
+        forecast,
+        inventory,
+        metrics,
+        category_metrics,
+        forecast_vs_actual,
+    )
 
 
 def format_number(value):
     return f"{value:,.2f}"
+
+
+def format_percent(value):
+    return f"{value * 100:.2f}%"
 
 
 def main():
@@ -39,7 +52,14 @@ def main():
     )
 
     try:
-        monthly_demand, forecast, inventory, metrics = load_outputs()
+        (
+            monthly_demand,
+            forecast,
+            inventory,
+            metrics,
+            category_metrics,
+            forecast_vs_actual,
+        ) = load_outputs()
 
     except FileNotFoundError:
         st.error("Required output files were not found.")
@@ -51,14 +71,33 @@ def main():
 
     st.subheader("Forecast Model Performance")
 
-    metric_row = metrics.iloc[0]
+    model_metric = metrics[
+        metrics["model_name"] == "Random Forest Forecasting Model"
+    ].iloc[0]
 
-    col1, col2, col3, col4 = st.columns(4)
+    baseline_metric = metrics[
+        metrics["model_name"] == "Naive Baseline Lag-1"
+    ].iloc[0]
 
-    col1.metric("RMSE", format_number(metric_row["rmse"]))
-    col2.metric("MAE", format_number(metric_row["mae"]))
-    col3.metric("R² Score", f"{metric_row['r2']:.3f}")
-    col4.metric("Test Rows", int(metric_row["test_rows"]))
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    col1.metric("Model RMSE", format_number(model_metric["rmse"]))
+    col2.metric("Model MAE", format_number(model_metric["mae"]))
+    col3.metric("Model WAPE", format_percent(model_metric["wape"]))
+    col4.metric("Model MAPE", format_percent(model_metric["mape"]))
+    col5.metric("Model R²", f"{model_metric['r2']:.3f}")
+
+    st.markdown("### Model vs Naive Baseline")
+
+    comparison_df = metrics.copy()
+    comparison_df["wape"] = comparison_df["wape"].apply(format_percent)
+    comparison_df["mape"] = comparison_df["mape"].apply(format_percent)
+
+    st.dataframe(
+        comparison_df,
+        width="stretch",
+        hide_index=True,
+    )
 
     st.divider()
 
@@ -75,6 +114,10 @@ def main():
 
     category_forecast = forecast[
         forecast["category"] == selected_category
+    ].copy()
+
+    category_actual = forecast_vs_actual[
+        forecast_vs_actual["category"] == selected_category
     ].copy()
 
     col_left, col_right = st.columns(2)
@@ -102,6 +145,44 @@ def main():
         forecast_chart = forecast_chart.set_index("forecast_month")
 
         st.line_chart(forecast_chart)
+
+    st.divider()
+
+    st.subheader("Forecast vs Actual")
+
+    category_actual = category_actual.sort_values("order_year_month")
+
+    forecast_actual_chart = category_actual[
+        [
+            "order_year_month",
+            "actual_quantity",
+            "model_prediction",
+            "baseline_prediction",
+        ]
+    ].copy()
+
+    forecast_actual_chart = forecast_actual_chart.set_index("order_year_month")
+
+    st.line_chart(forecast_actual_chart)
+
+    st.markdown("### Category-Level Metrics")
+
+    selected_category_metrics = category_metrics[
+        category_metrics["category"] == selected_category
+    ].copy()
+
+    selected_category_metrics["wape"] = selected_category_metrics["wape"].apply(
+        format_percent
+    )
+    selected_category_metrics["mape"] = selected_category_metrics["mape"].apply(
+        format_percent
+    )
+
+    st.dataframe(
+        selected_category_metrics,
+        width="stretch",
+        hide_index=True,
+    )
 
     st.divider()
 
@@ -159,10 +240,11 @@ def main():
 
     st.markdown(
         """
-        - The model forecasts category-level demand for the next six months.
-        - Safety stock is calculated using historical demand variability.
-        - Reorder point combines expected demand and safety stock.
-        - Stockout risk helps identify whether current stock assumptions are enough for near-future demand.
+        - The forecasting model is compared against a naive lag-1 baseline.
+        - WAPE and MAPE provide percentage-based error interpretation.
+        - Category-level metrics reveal whether the model performs differently across product categories.
+        - Forecast vs Actual visualization helps evaluate how closely the model follows recent demand patterns.
+        - Safety stock and reorder point convert forecasting output into inventory planning recommendations.
         - This project moves from descriptive analytics to predictive and prescriptive analytics.
         """
     )

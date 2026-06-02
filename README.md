@@ -105,6 +105,10 @@ retail-demand-forecasting/
 │   ├── demand_forecast.csv
 │   └── inventory_recommendations.csv
 │
+├── screenshots/
+│   ├── retail_dashboard_forecast_overview.png
+│   └── retail_dashboard_inventory_recommendations.png
+│
 ├── src/
 │   ├── __init__.py
 │   ├── config.py
@@ -266,7 +270,7 @@ This means the model reduced the overall weighted absolute percentage error comp
 | Technology | Random Forest | 88.91 | 70.83 | 27.70% | 24.85% | -0.316 |
 | Technology | Naive Baseline | 111.84 | 97.17 | 38.01% | 35.88% | -1.082 |
 
-Category-level analysis shows that the model performs best on Furniture and improves WAPE for all categories compared with the baseline.
+Category-level analysis shows that the model improves WAPE for all categories compared with the baseline. The strongest performance is observed for Furniture, while Technology remains more volatile and harder to forecast.
 
 ---
 
@@ -355,6 +359,18 @@ Dashboard components include:
 - Inventory recommendations
 - Forecast table
 - Business insights
+
+---
+
+## Dashboard Preview
+
+### Forecast Performance and Demand Overview
+
+![Retail Forecasting Dashboard Overview](screenshots/retail_dashboard_forecast_overview.png)
+
+### Inventory Recommendations and Forecast Tables
+
+![Retail Inventory Recommendations](screenshots/retail_dashboard_inventory_recommendations.png)
 
 ---
 
@@ -454,6 +470,9 @@ results/figures/stockout_risk_distribution.png
 results/figures/forecast_vs_actual_furniture.png
 results/figures/forecast_vs_actual_office_supplies.png
 results/figures/forecast_vs_actual_technology.png
+
+screenshots/retail_dashboard_forecast_overview.png
+screenshots/retail_dashboard_inventory_recommendations.png
 ```
 
 ---
@@ -485,6 +504,7 @@ Completed:
 - Future demand forecasting
 - Inventory recommendation logic
 - Streamlit dashboard
+- Dashboard screenshots
 - Result visualizations
 - GitHub-ready structure
 
@@ -492,7 +512,6 @@ Planned next steps:
 
 - Add product-level forecasting
 - Add region-level demand forecasting
-- Add Power BI dashboard
 - Add model comparison with XGBoost or Prophet
 - Add rolling-window backtesting
 - Add inventory cost simulation
@@ -515,8 +534,24 @@ Planned next steps:
 
 ---
 
+## Resume Summary
+
+```text
+Retail Demand Forecasting & Inventory Optimization | Python, Pandas, Scikit-learn, Streamlit, Time-Series Forecasting
+
+- Built an end-to-end demand forecasting pipeline using Superstore sales data to predict category-level retail demand.
+- Engineered time-series lag features, rolling averages, and monthly demand aggregates for forecasting.
+- Trained a Random Forest forecasting model and compared it against a naive lag-1 baseline.
+- Improved WAPE from 31.86% to 23.75% and achieved an overall R² score of 0.740.
+- Generated inventory planning recommendations including safety stock, reorder point, recommended order quantity, and stockout risk.
+- Built a Streamlit dashboard for forecast performance, forecast vs actual analysis, category-level metrics, and inventory recommendations.
+```
+
+---
+
 ## Author
 
 Zahra Ziaee
 
-Focus: Machine Learning, Forecasting, Inventory Analytics, Business Intelligence, and Data-Driven Decision Making
+
+Focus: Forecasting, Inventory Analytics, Machine Learning, Business Intelligence, and Data-Driven Decision Making

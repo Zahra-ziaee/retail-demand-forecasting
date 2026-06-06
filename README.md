@@ -534,7 +534,7 @@ Planned next steps:
 
 ---
 
-## Resume Summary
+## Key Takeaways
 
 ```text
 Retail Demand Forecasting & Inventory Optimization | Python, Pandas, Scikit-learn, Streamlit, Time-Series Forecasting
@@ -552,6 +552,5 @@ Retail Demand Forecasting & Inventory Optimization | Python, Pandas, Scikit-lear
 ## Author
 
 Zahra Ziaee
-
 
 Focus: Forecasting, Inventory Analytics, Machine Learning, Business Intelligence, and Data-Driven Decision Making

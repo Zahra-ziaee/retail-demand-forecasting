@@ -1,4 +1,3 @@
-
 # Retail Demand Forecasting & Inventory Planning
 
 An end-to-end Python data science project that forecasts **monthly retail demand by product category**, evaluates **multi-step forecasts without future-target leakage**, and translates forecasts into **illustrative inventory-planning scenarios**.
@@ -211,10 +210,27 @@ The Streamlit dashboard can be launched with:
 streamlit run app/streamlit_app.py
 ```
 
-Existing screenshots, if retained, should be refreshed if they show the old inventory numbers or outdated risk wording:
+### Dashboard screenshots
 
-- `screenshots/retail_dashboard_forecast_overview.png`
-- `screenshots/retail_dashboard_inventory_recommendations.png`
+These screenshots show the updated Streamlit dashboard using the historical Superstore simulation (not live demand forecasts).
+
+**1. Dashboard overview and one-step evaluation**
+
+![Dashboard overview and one-step forecasting metrics](screenshots/retail_dashboard_forecast_overview.png)
+
+**2. Recursive and rolling-origin model validation**
+
+![Six-month recursive backtesting and rolling-origin results](screenshots/retail_dashboard_model_validation.png)
+
+**3. Demand analysis and forecast-versus-actual charts**
+
+![Category-level historical demand and forecast evaluation](screenshots/retail_dashboard_demand_charts.png)
+
+**4. Inventory planning with clearly labeled illustrative stock**
+
+![Inventory planning scenario and disclaimer about assumed stock](screenshots/retail_dashboard_inventory_recommendations.png)
+
+The inventory illustration uses **assumed stock**, not an observed warehouse balance. The heuristic risk labels are not calibrated stockout probabilities.
 
 ## Reproduce the results (Windows)
 

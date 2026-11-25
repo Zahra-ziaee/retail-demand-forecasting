@@ -1,4 +1,4 @@
-category,avg_monthly_demand,demand_std,last_observed_month,last_3_month_avg_demand,next_month_forecast,avg_forecast_next_6_months,max_forecast_next_6_months,estimated_current_stock,safety_stock,reorder_point,recommended_order_quantity,stockout_risk
-Furniture,167.25,88.59,2017-12,336.67,180.02,157.05,180.02,370.33,146.17,303.22,0.0,Low
-Office Supplies,477.21,246.21,2017-12,935.33,345.46,426.72,498.21,1028.87,406.25,832.97,0.0,Low
-Technology,144.56,76.93,2017-12,293.33,109.55,140.69,167.18,322.67,126.94,267.63,0.0,Low
+category,avg_monthly_demand,demand_std,last_observed_month,last_3_month_avg_demand,next_month_forecast,avg_forecast_next_6_months,max_forecast_next_6_months,forecast_demand_during_lead_time,estimated_current_stock,stock_source,safety_stock,reorder_point,recommended_order_quantity,stockout_risk,risk_interpretation,lead_time_months
+Furniture,167.25,88.59,2017-12,336.67,251.57,185.73,251.57,251.57,370.33,Illustrative scenario (not observed),146.17,397.74,28.0,Medium,Heuristic scenario label,1.0
+Office Supplies,477.21,246.21,2017-12,935.33,536.43,505.93,536.43,536.43,1028.87,Illustrative scenario (not observed),406.25,942.68,0.0,Low,Heuristic scenario label,1.0
+Technology,144.56,76.93,2017-12,293.33,129.59,154.48,175.64,129.59,322.67,Illustrative scenario (not observed),126.94,256.53,0.0,Low,Heuristic scenario label,1.0

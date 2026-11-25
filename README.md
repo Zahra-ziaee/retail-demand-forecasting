@@ -1,556 +1,320 @@
-# Retail Demand Forecasting & Inventory Optimization
 
-An end-to-end data science project for forecasting retail product-category demand and generating inventory planning recommendations.
+# Retail Demand Forecasting & Inventory Planning
 
-This project moves beyond descriptive sales analytics and focuses on predictive and prescriptive analytics using time-series feature engineering, machine learning forecasting, baseline comparison, forecast evaluation, and inventory optimization logic.
+An end-to-end Python data science project that forecasts **monthly retail demand by product category**, evaluates **multi-step forecasts without future-target leakage**, and translates forecasts into **illustrative inventory-planning scenarios**.
 
----
+> **Historical simulation, not a current forecast:** The Superstore dataset covers **January 2014–December 2017**. The six-month forecasts shown here are for **January–June 2018**, generated as though the analysis were performed at the end of 2017. No 2026 demand or live inventory is claimed.
 
-## Project Overview
+## Highlights
 
-Retail businesses need accurate demand forecasts to reduce stockouts, avoid overstocking, and improve inventory planning.
+- Aggregates 9,994 sales records into monthly demand for three categories: Furniture, Office Supplies, and Technology.
+- Builds category-specific lag and rolling-mean features without using the current month's target.
+- Trains a scikit-learn Random Forest regression pipeline and compares it with simple baselines.
+- Separates **one-step-ahead evaluation** (observed history updated monthly) from **six-step recursive forecasting** (future lags built from earlier predictions).
+- Uses **three expanding-window rolling-origin evaluations**, with a separate model fitted at each cutoff.
+- Fits the final forecasting model on all available historical training examples for the 2018 forecast simulation.
+- Generates safety-stock, reorder-point, and order-quantity estimates, with explicit warnings when stock is assumed rather than observed.
+- Includes a Streamlit dashboard, saved charts, CSV reports, and **12 automated tests**.
 
-This project uses the Superstore sales dataset to forecast future demand at the product-category level and generate inventory recommendations such as:
+## Dataset and forecast scope
 
-- Next-month demand forecast
-- Six-month demand forecast
-- Safety stock
-- Reorder point
-- Recommended order quantity
-- Stockout risk level
+| Item | Value |
+|---|---|
+| Dataset | Superstore sales transactions |
+| Raw records | 9,994 |
+| Original columns | 21 |
+| Historical period | January 2014–December 2017 |
+| Product categories | 3 |
+| Monthly category observations | 144 (48 months × 3 categories) |
+| Rows after three-month lag feature construction | 135 (45 per category) |
+| Forecast granularity | Category × month |
+| Forecast horizon | 6 months |
 
-The project includes:
+The raw dataset is expected at `data/raw/superstore.csv`. Raw and processed datasets are excluded from version control by `.gitignore`, so **a fresh clone requires the user to supply the dataset** before running the pipeline.
 
-- Data loading
-- Data cleaning
-- Monthly demand aggregation
-- Time-series feature engineering
-- Lag feature creation
-- Random Forest forecasting model
-- Naive baseline comparison
-- Forecast evaluation with RMSE, MAE, WAPE, MAPE, and R²
-- Category-level forecast metrics
-- Forecast vs actual analysis
-- Inventory recommendation logic
-- Streamlit dashboard
-- Result visualizations
+This is category-level *sales quantity* forecasting, not SKU-level inventory demand. The raw data has no inventory-position or replenishment-event history.
 
----
-
-## Dataset
-
-The project uses the Superstore sales dataset.
-
-Raw data file:
-
-```text
-data/raw/superstore.csv
-```
-
-The raw dataset is excluded from GitHub using `.gitignore`.
-
-The dataset contains:
-
-| Metric | Value |
-|---|---:|
-| Rows | 9,994 |
-| Columns | 21 |
-| Missing values | 0 |
-
-Main fields include:
-
-- Order ID
-- Order Date
-- Ship Date
-- Customer ID
-- Segment
-- Region
-- Category
-- Sub-Category
-- Product Name
-- Sales
-- Quantity
-- Discount
-- Profit
-
----
-
-## Project Structure
+## Project structure
 
 ```text
 retail-demand-forecasting/
-│
-├── app/
-│   └── streamlit_app.py
-│
-├── data/
-│   ├── raw/
-│   └── processed/
-│
-├── models/
-│   └── demand_forecasting_model.joblib
-│
-├── results/
-│   ├── figures/
-│   │   ├── historical_monthly_demand.png
-│   │   ├── forecasted_demand.png
-│   │   ├── stockout_risk_distribution.png
-│   │   ├── forecast_vs_actual_furniture.png
-│   │   ├── forecast_vs_actual_office_supplies.png
-│   │   └── forecast_vs_actual_technology.png
-│   │
-│   ├── forecast_metrics.csv
-│   ├── category_forecast_metrics.csv
-│   ├── forecast_vs_actual.csv
-│   ├── demand_forecast.csv
-│   └── inventory_recommendations.csv
-│
-├── screenshots/
-│   ├── retail_dashboard_forecast_overview.png
-│   └── retail_dashboard_inventory_recommendations.png
-│
-├── src/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── data_loader.py
-│   ├── preprocessing.py
-│   ├── forecasting.py
-│   ├── inventory.py
-│   ├── visualization.py
-│   └── utils.py
-│
-├── .gitignore
-├── main.py
-├── README.md
-└── requirements.txt
+|-- app/
+|   `-- streamlit_app.py
+|-- data/
+|   |-- raw/                       # Not tracked
+|   `-- processed/                 # Generated; not tracked
+|-- models/                        # Generated; not tracked
+|-- results/
+|   |-- figures/
+|   |-- forecast_metrics.csv
+|   |-- category_forecast_metrics.csv
+|   |-- forecast_vs_actual.csv
+|   |-- recursive_backtest_predictions.csv
+|   |-- recursive_backtest_metrics.csv
+|   |-- recursive_backtest_category_metrics.csv
+|   |-- rolling_origin_predictions.csv
+|   |-- rolling_origin_metrics.csv
+|   |-- rolling_origin_summary.csv
+|   |-- demand_forecast.csv
+|   `-- inventory_recommendations.csv
+|-- screenshots/
+|-- src/
+|   |-- config.py
+|   |-- data_loader.py
+|   |-- preprocessing.py
+|   |-- forecasting.py
+|   |-- backtesting.py
+|   |-- rolling_origin.py
+|   |-- inventory.py
+|   `-- visualization.py
+|-- tests/
+|   |-- test_lag_features.py
+|   |-- test_backtesting.py
+|   |-- test_rolling_origin.py
+|   `-- test_inventory.py
+|-- main.py
+|-- requirements.txt
+|-- .gitignore
+`-- README.md
 ```
-
----
 
 ## Methodology
 
-### 1. Data Cleaning
+### 1. Data preparation
 
-The raw Superstore dataset is cleaned using Python and Pandas.
+Order-level records are cleaned and aggregated by category and calendar month. The prediction target is `total_quantity`; each model row also includes `category`, `year`, and `month`.
 
-Cleaning steps include:
+### 2. Leakage-aware feature engineering
 
-- Standardizing column names
-- Converting order and shipping dates into datetime format
-- Converting numeric fields into numeric types
-- Removing duplicates
-- Removing invalid date or demand records
-- Creating time-based columns
-- Creating profit margin
-
-Created columns:
+The forecasting pipeline uses:
 
 ```text
-order_year
-order_month
-order_year_month
-profit_margin
+category, year, month, lag_1, lag_2, lag_3, rolling_mean_3
 ```
 
----
+Lag features are computed **within each category**. `rolling_mean_3` uses the **three preceding months**, not the month being predicted.
 
-### 2. Monthly Demand Aggregation
+### 3. Forecasting model
 
-The forecasting problem is created by aggregating order-level data into monthly demand by product category.
+- Estimator: `RandomForestRegressor` (`n_estimators=300`, `max_depth=8`, `random_state=42`).
+- Preprocessing: numeric scaling and one-hot encoding of category through a scikit-learn pipeline.
+- Target: monthly `total_quantity`.
+- Final fitted model: `models/demand_forecasting_model.joblib` (generated locally, not tracked in Git).
 
-The monthly demand table includes:
+The model and hyperparameters are a project baseline, **not a claim of exhaustive tuning or production readiness**.
 
-```text
-category
-order_year_month
-total_quantity
-total_sales
-total_profit
-order_count
-year
-month
-```
+### 4. Two different evaluation settings
 
-This transforms transactional sales data into a time-series forecasting dataset.
+**One-step holdout:** For the final six historical months per category (July–December 2017), each prediction may use **actual observed earlier-month demand** to construct its features. This represents a process where demand observations are updated each month.
 
----
+**Fixed-origin recursive holdout:** From the June 2017 origin, the model predicts July–December 2017 without accessing actual future demand while creating later forecast lags. Earlier **predictions**, not hidden actuals, feed the next step. The baseline repeats the last observed demand at the origin.
 
-### 3. Time-Series Feature Engineering
+The one-step and recursive scores measure different operational questions and should **not** be presented as directly interchangeable.
 
-Lag-based features are created for each category:
+## Evaluation results
 
-```text
-lag_1
-lag_2
-lag_3
-rolling_mean_3
-```
+### One-step holdout (18 category-month predictions)
 
-These features allow the model to learn from recent demand patterns.
-
----
-
-## Forecasting Model
-
-The forecasting model used is:
-
-```text
-Random Forest Regressor
-```
-
-Model features:
-
-```text
-category
-year
-month
-lag_1
-lag_2
-lag_3
-rolling_mean_3
-```
-
-Target variable:
-
-```text
-total_quantity
-```
-
-The model is saved as:
-
-```text
-models/demand_forecasting_model.joblib
-```
-
----
-
-## Baseline Model
-
-To make the evaluation more meaningful, the model is compared with a naive baseline:
-
-```text
-Naive Baseline Lag-1
-```
-
-This baseline predicts the current month demand using the previous month demand.
-
-This is important because a forecasting model should be compared against a simple business baseline, not evaluated in isolation.
-
----
-
-## Forecast Evaluation
-
-Overall model performance:
-
-| Model | RMSE | MAE | WAPE | MAPE | R² |
+| Model | RMSE ↓ | MAE ↓ | WAPE ↓ | MAPE ↓ | R² ↑ |
 |---|---:|---:|---:|---:|---:|
-| Random Forest Forecasting Model | 157.48 | 106.59 | 23.75% | 21.35% | 0.740 |
-| Naive Baseline Lag-1 | 196.95 | 143.00 | 31.86% | 31.83% | 0.594 |
+| Random Forest | **157.48** | **106.59** | **23.75%** | **21.35%** | **0.740** |
+| Previous-month naive baseline | 196.95 | 143.00 | 31.86% | 31.83% | 0.594 |
 
-The Random Forest model outperformed the naive baseline across all major metrics.
+### Six-month fixed-origin recursive holdout (origin: June 2017)
 
-Key improvement:
+| Model | RMSE ↓ | MAE ↓ | WAPE ↓ | MAPE ↓ | R² ↑ |
+|---|---:|---:|---:|---:|---:|
+| Random Forest recursive | **150.77** | **103.18** | **22.99%** | **20.22%** | **0.762** |
+| Fixed-origin naive baseline | 228.99 | 160.89 | 35.84% | 32.17% | 0.451 |
 
-```text
-WAPE improved from 31.86% to 23.75%.
-```
+### Expanding-window rolling-origin evaluation
 
-This means the model reduced the overall weighted absolute percentage error compared with the simple lag-1 baseline.
+Three models are trained separately using data available **at each origin**. Each origin tests the next six months across three categories (18 predictions per origin).
 
----
+| Training cutoff | Forecast window | RF RMSE ↓ | Baseline RMSE ↓ | RF WAPE ↓ |
+|---|---|---:|---:|---:|
+| 2016-12 | Jan–Jun 2017 | **75.56** | 267.43 | 25.00% |
+| 2017-03 | Apr–Sep 2017 | **98.41** | 136.57 | 20.26% |
+| 2017-06 | Jul–Dec 2017 | **150.77** | 228.99 | 22.99% |
 
-## Category-Level Forecast Metrics
+**Pooled metrics (54 forecast rows):**
 
-| Category | Model | RMSE | MAE | WAPE | MAPE | R² |
-|---|---|---:|---:|---:|---:|---:|
-| Furniture | Random Forest | 52.50 | 46.59 | 17.23% | 18.07% | 0.691 |
-| Furniture | Naive Baseline | 91.06 | 71.67 | 26.51% | 27.35% | 0.071 |
-| Office Supplies | Random Forest | 252.48 | 202.36 | 24.66% | 21.13% | 0.007 |
-| Office Supplies | Naive Baseline | 309.14 | 260.17 | 31.70% | 32.27% | -0.489 |
-| Technology | Random Forest | 88.91 | 70.83 | 27.70% | 24.85% | -0.316 |
-| Technology | Naive Baseline | 111.84 | 97.17 | 38.01% | 35.88% | -1.082 |
+| Model | RMSE ↓ | MAE ↓ | WAPE ↓ | MAPE ↓ | R² ↑ |
+|---|---:|---:|---:|---:|---:|
+| Random Forest recursive | **112.73** | **77.01** | **22.59%** | **26.18%** | **0.812** |
+| Fixed-origin naive baseline | 218.03 | 157.39 | 46.16% | 63.92% | 0.297 |
 
-Category-level analysis shows that the model improves WAPE for all categories compared with the baseline. The strongest performance is observed for Furniture, while Technology remains more volatile and harder to forecast.
+The pooled Random Forest RMSE is approximately **48.3% lower** than that of this fixed-origin naive baseline. These results are descriptive: the windows **overlap**, so the 54 rows are **not 54 independent calendar-month observations**. More origins, seasonal baselines, and additional datasets would be necessary for stronger generalization claims.
 
----
+The baseline is deliberately simple and not necessarily the strongest possible forecaster. Relative performance could change under seasonal-naive or other benchmarks.
 
-## Future Demand Forecast
+## Six-month future forecast simulation
 
-The model forecasts demand for the next six months for each category.
+After the historical evaluation, a new model is fitted using **all 135 available lagged rows** (through December 2017). It recursively generates forecasts for **January–June 2018**.
 
-Example forecast output:
+| Category | January 2018 forecast | Average forecast, Jan–Jun 2018 |
+|---|---:|---:|
+| Furniture | 251.57 | 185.73 |
+| Office Supplies | 536.43 | 505.93 |
+| Technology | 129.59 | 154.48 |
 
-| Category | Forecast Month | Predicted Quantity |
-|---|---|---:|
-| Furniture | 2018-01 | 180.02 |
-| Furniture | 2018-02 | 103.81 |
-| Furniture | 2018-03 | 157.58 |
-| Office Supplies | 2018-01 | 345.46 |
-| Office Supplies | 2018-02 | 318.98 |
-| Office Supplies | 2018-03 | 412.78 |
+Full category-month predictions: [`results/demand_forecast.csv`](results/demand_forecast.csv).
 
----
+These are **historical forecast-simulation outputs** based on a dataset ending in 2017. They are not forecasts from today's date.
 
-## Inventory Optimization
+## Inventory planning: explicit assumptions
 
-The project converts demand forecasts into inventory recommendations.
-
-Inventory metrics include:
-
-- Average monthly demand
-- Demand standard deviation
-- Last 3-month average demand
-- Next-month forecast
-- Average forecast for next 6 months
-- Safety stock
-- Reorder point
-- Recommended order quantity
-- Stockout risk
-
-The formulas used are:
+The inventory module converts the forecasts to a **category-level planning scenario**. With the default `lead_time_months=1.0` and `service_level_z=1.65`:
 
 ```text
-Safety Stock = Z-score × Demand Standard Deviation × sqrt(Lead Time)
-
-Reorder Point = Forecasted Demand During Lead Time + Safety Stock
-
-Recommended Order Quantity = max(Reorder Point - Estimated Current Stock, 0)
+Lead-time demand = sum of forecasted demand over the lead time
+Safety stock = z * historical monthly demand std * sqrt(lead time in months)
+Reorder point = lead-time forecast demand + safety stock
+Suggested order quantity = ceil(max(reorder point - assumed/provided stock, 0))
 ```
 
-The default assumptions are:
+Fractional lead times prorate the forecast for the final partial month. The safety-stock equation assumes approximately independent monthly demand variability and uses historical sample standard deviation as a proxy; it is **not** a calibrated guarantee of service level.
 
-```text
-Lead time = 1 month
-Service level Z-score = 1.65
-Estimated current stock = Last 3-month average demand × 1.10
-```
+**Important stock-data distinction:**
 
----
+- **Default:** `estimated_current_stock = 1.10 × average historical demand over the last three months`. This is **synthetic scenario stock**, not an observed warehouse balance.
+- **Optional:** `calculate_inventory_recommendations(...)` accepts a `current_stock_by_category` mapping for stock supplied by the caller.
+- `stock_source` records which type of stock input was used.
+- `stockout_risk` is a **heuristic High/Medium/Low label**, not a modeled stockout probability. Its interpretation is recorded in `risk_interpretation`.
 
-## Inventory Recommendation Results
+### Example output using illustrative stock (one-month lead time)
 
-| Category | Avg Monthly Demand | Safety Stock | Reorder Point | Stockout Risk |
-|---|---:|---:|---:|---|
-| Furniture | 167.25 | 146.17 | 303.22 | Low |
-| Office Supplies | 477.21 | 406.25 | 832.97 | Low |
-| Technology | 144.56 | 126.94 | 267.63 | Low |
+| Category | Forecast during lead time | Assumed stock | Safety stock | Reorder point | Suggested units | Scenario label |
+|---|---:|---:|---:|---:|---:|---|
+| Furniture | 251.57 | 370.33 | 146.17 | 397.74 | **28** | Medium |
+| Office Supplies | 536.43 | 1,028.87 | 406.25 | 942.68 | 0 | Low |
+| Technology | 129.59 | 322.67 | 126.94 | 256.53 | 0 | Low |
 
----
+These quantities **must not be interpreted as operational purchase orders**. The dataset does not include actual on-hand inventory, outstanding purchase orders, reservations, supplier constraints, holding/shortage costs, or verified lead-time variability. This is a **reorder-point demonstration**, not a fully optimized inventory policy.
 
-## Streamlit Dashboard
+## Visualizations and dashboard
 
-The project includes an interactive Streamlit dashboard.
+The project saves the following charts:
 
-Run the dashboard:
+- [Historical monthly demand](results/figures/historical_monthly_demand.png)
+- [Forecasted demand, 2018 simulation](results/figures/forecasted_demand.png)
+- [Illustrative inventory-risk scenario](results/figures/stockout_risk_distribution.png)
+- [Furniture: forecast vs actual](results/figures/forecast_vs_actual_furniture.png)
+- [Office Supplies: forecast vs actual](results/figures/forecast_vs_actual_office_supplies.png)
+- [Technology: forecast vs actual](results/figures/forecast_vs_actual_technology.png)
+
+The inventory-risk chart explicitly labels illustrative stock assumptions and heuristic risk labels. Forecast-vs-actual charts refer to the **one-step holdout**, not the pooled rolling-origin evaluation.
+
+The Streamlit dashboard can be launched with:
 
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
-Dashboard components include:
+Existing screenshots, if retained, should be refreshed if they show the old inventory numbers or outdated risk wording:
 
-- Forecast model performance
-- Model vs naive baseline comparison
-- Category selector
-- Historical monthly demand
-- Forecasted demand for next 6 months
-- Forecast vs actual chart
-- Category-level metrics
-- Inventory recommendations
-- Forecast table
-- Business insights
+- `screenshots/retail_dashboard_forecast_overview.png`
+- `screenshots/retail_dashboard_inventory_recommendations.png`
 
----
+## Reproduce the results (Windows)
 
-## Dashboard Preview
+1. Clone the repository and enter the project directory:
 
-### Forecast Performance and Demand Overview
+   ```cmd
+   git clone https://github.com/Zahra-ziaee/retail-demand-forecasting.git
+   cd retail-demand-forecasting
+   ```
 
-![Retail Forecasting Dashboard Overview](screenshots/retail_dashboard_forecast_overview.png)
+2. Create and activate a virtual environment in **Command Prompt**:
 
-### Inventory Recommendations and Forecast Tables
+   ```cmd
+   python -m venv .venv
+   .venv\Scripts\activate.bat
+   ```
 
-![Retail Inventory Recommendations](screenshots/retail_dashboard_inventory_recommendations.png)
+3. Install the dependencies:
 
----
+   ```cmd
+   python -m pip install -r requirements.txt
+   ```
 
-## Result Visualizations
+4. Place the Superstore CSV at `data/raw/superstore.csv`.
 
-### Historical Monthly Demand
+5. Generate the data, final model, six-month forecast, inventory scenario, and charts:
 
-![Historical Monthly Demand](results/figures/historical_monthly_demand.png)
+   ```cmd
+   python main.py
+   ```
 
-### Forecasted Demand
+6. Run the three-origin recursive backtest:
 
-![Forecasted Demand](results/figures/forecasted_demand.png)
+   ```cmd
+   python -m src.rolling_origin
+   ```
 
-### Stockout Risk Distribution
+7. Run the automated test suite **after generating the reports**, since the rolling-origin report tests inspect saved CSV files:
 
-![Stockout Risk Distribution](results/figures/stockout_risk_distribution.png)
+   ```cmd
+   python -m unittest discover -s tests -p "test_*.py" -v
+   ```
 
-### Forecast vs Actual - Furniture
+   Expected result on the validated project version: **12 tests passed**.
 
-![Forecast vs Actual Furniture](results/figures/forecast_vs_actual_furniture.png)
+8. Optionally run the dashboard:
 
-### Forecast vs Actual - Office Supplies
+   ```cmd
+   streamlit run app/streamlit_app.py
+   ```
 
-![Forecast vs Actual Office Supplies](results/figures/forecast_vs_actual_office_supplies.png)
+## Main generated outputs
 
-### Forecast vs Actual - Technology
+| File | Contents |
+|---|---|
+| `results/forecast_metrics.csv` | One-step holdout comparison |
+| `results/category_forecast_metrics.csv` | One-step metrics by category |
+| `results/forecast_vs_actual.csv` | One-step prediction records |
+| `results/recursive_backtest_predictions.csv` | Six-month fixed-origin predictions |
+| `results/recursive_backtest_metrics.csv` | Six-month recursive overall scores |
+| `results/recursive_backtest_category_metrics.csv` | Recursive scores by category |
+| `results/rolling_origin_predictions.csv` | Predictions from all three origins |
+| `results/rolling_origin_metrics.csv` | Per-origin performance comparison |
+| `results/rolling_origin_summary.csv` | Pooled scores across origins |
+| `results/demand_forecast.csv` | Six-month 2018 forecast simulation |
+| `results/inventory_recommendations.csv` | Explicitly labeled inventory scenarios |
 
-![Forecast vs Actual Technology](results/figures/forecast_vs_actual_technology.png)
+## Tests and quality checks
 
----
+The `unittest` suite contains 12 tests covering:
 
-## How to Run
+- Category-specific lag and rolling feature correctness.
+- No use of the current target in lagged features.
+- Recursive updates using **predicted**, not actual future, values.
+- Detection of nonconsecutive forecast months.
+- Rolling-origin windows and the fixed-origin naive baseline.
+- Independent recalculation of saved error metrics.
+- Inventory formulas, illustrative vs provided stock, fractional lead times, and invalid inputs.
 
-### 1. Clone the repository
+These tests are helpful checks, not a complete proof that every data issue or deployment condition is covered.
 
-```bash
-git clone https://github.com/Zahra-ziaee/retail-demand-forecasting.git
-cd retail-demand-forecasting
-```
+## Limitations and next steps
 
-### 2. Create and activate virtual environment
+- **Small dataset:** 48 historical months per category and three categories only.
+- **Limited baselines:** Add seasonal-naive forecasting and stronger statistical or ML comparisons.
+- **Overlapping backtests:** Avoid treating pooled rows as independent experiments; explore additional nonoverlapping origins.
+- **Forecast uncertainty:** The model produces point forecasts, not calibrated prediction intervals.
+- **Random Forest extrapolation:** Performance beyond the historical range may be limited, especially for future calendar years.
+- **Not real inventory optimization:** Incorporate actual inventory positions, purchase orders, lead-time uncertainty, capacity, procurement costs, and service-level validation.
+- **Scope:** Extend evaluation to SKU and regional levels if sufficiently reliable data becomes available.
+- **Dashboard:** Check that displayed labels and screenshots remain consistent with the new illustrative-inventory assumptions.
 
-Windows PowerShell:
+## Technology
 
-```bash
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
+Python, pandas, NumPy, scikit-learn, Random Forest, Matplotlib, Streamlit, joblib, Git, GitHub, and `unittest`.
 
-### 3. Install dependencies
+## Résumé summary
 
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Add dataset
-
-Place the raw Superstore CSV file here:
-
-```text
-data/raw/superstore.csv
-```
-
-### 5. Run the pipeline
-
-```bash
-python main.py
-```
-
-### 6. Run the dashboard
-
-```bash
-streamlit run app/streamlit_app.py
-```
-
----
-
-## Outputs
-
-Running the project generates:
-
-```text
-data/processed/superstore_cleaned.csv
-data/processed/monthly_category_demand.csv
-
-models/demand_forecasting_model.joblib
-
-results/forecast_metrics.csv
-results/category_forecast_metrics.csv
-results/forecast_vs_actual.csv
-results/demand_forecast.csv
-results/inventory_recommendations.csv
-
-results/figures/historical_monthly_demand.png
-results/figures/forecasted_demand.png
-results/figures/stockout_risk_distribution.png
-results/figures/forecast_vs_actual_furniture.png
-results/figures/forecast_vs_actual_office_supplies.png
-results/figures/forecast_vs_actual_technology.png
-
-screenshots/retail_dashboard_forecast_overview.png
-screenshots/retail_dashboard_inventory_recommendations.png
-```
-
----
-
-## Business Insights
-
-- The Random Forest forecasting model outperformed the naive lag-1 baseline.
-- WAPE improved from 31.86% to 23.75%, showing better demand prediction accuracy.
-- Furniture had the strongest category-level performance.
-- Technology remained more volatile and harder to forecast, although the model still improved over the baseline.
-- Safety stock and reorder point convert forecasting results into practical inventory planning recommendations.
-- The project supports both predictive analytics and prescriptive inventory decision-making.
-
----
-
-## Current Status
-
-Completed:
-
-- Data loading
-- Data cleaning
-- Monthly demand aggregation
-- Lag feature engineering
-- Forecasting model training
-- Baseline comparison
-- WAPE and MAPE evaluation
-- Category-level forecast metrics
-- Forecast vs actual analysis
-- Future demand forecasting
-- Inventory recommendation logic
-- Streamlit dashboard
-- Dashboard screenshots
-- Result visualizations
-- GitHub-ready structure
-
-Planned next steps:
-
-- Add product-level forecasting
-- Add region-level demand forecasting
-- Add model comparison with XGBoost or Prophet
-- Add rolling-window backtesting
-- Add inventory cost simulation
-- Add scenario analysis for different service levels
-
----
-
-## Technologies Used
-
-- Python
-- Pandas
-- NumPy
-- Scikit-learn
-- Random Forest Regressor
-- Matplotlib
-- Streamlit
-- Joblib
-- Git
-- GitHub
-
----
-
-## Key Takeaways
-
-```text
-Retail Demand Forecasting & Inventory Optimization | Python, Pandas, Scikit-learn, Streamlit, Time-Series Forecasting
-
-- Built an end-to-end demand forecasting pipeline using Superstore sales data to predict category-level retail demand.
-- Engineered time-series lag features, rolling averages, and monthly demand aggregates for forecasting.
-- Trained a Random Forest forecasting model and compared it against a naive lag-1 baseline.
-- Improved WAPE from 31.86% to 23.75% and achieved an overall R² score of 0.740.
-- Generated inventory planning recommendations including safety stock, reorder point, recommended order quantity, and stockout risk.
-- Built a Streamlit dashboard for forecast performance, forecast vs actual analysis, category-level metrics, and inventory recommendations.
-```
-
----
+> Built a leakage-aware category-level retail demand forecasting pipeline using Random Forest, six-month recursive forecasting, and three expanding-window backtests. Across 54 overlapping forecast rows, achieved **22.59% WAPE versus 46.16%** for a fixed-origin naive baseline, with **12 automated tests**. Developed clearly labeled illustrative safety-stock and reorder-point scenarios and a Streamlit reporting dashboard.
 
 ## Author
 
-Zahra Ziaee
-
-Focus: Forecasting, Inventory Analytics, Machine Learning, Business Intelligence, and Data-Driven Decision Making
+**Zahra Ziaee** · [GitHub](https://github.com/Zahra-ziaee)

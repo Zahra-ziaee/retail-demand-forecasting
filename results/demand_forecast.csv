@@ -1,19 +1,19 @@
 category,forecast_month,forecast_step,predicted_quantity
-Furniture,2018-01,1,180.02
-Furniture,2018-02,2,103.81
-Furniture,2018-03,3,157.58
-Furniture,2018-04,4,160.26
-Furniture,2018-05,5,176.41
-Furniture,2018-06,6,164.2
-Office Supplies,2018-01,1,345.46
-Office Supplies,2018-02,2,318.98
-Office Supplies,2018-03,3,412.78
-Office Supplies,2018-04,4,487.6
-Office Supplies,2018-05,5,497.31
-Office Supplies,2018-06,6,498.21
-Technology,2018-01,1,109.55
-Technology,2018-02,2,90.41
-Technology,2018-03,3,166.33
-Technology,2018-04,4,148.64
-Technology,2018-05,5,167.18
-Technology,2018-06,6,162.02
+Furniture,2018-01,1,251.57
+Furniture,2018-02,2,176.67
+Furniture,2018-03,3,199.64
+Furniture,2018-04,4,163.74
+Furniture,2018-05,5,154.77
+Furniture,2018-06,6,167.99
+Office Supplies,2018-01,1,536.43
+Office Supplies,2018-02,2,513.45
+Office Supplies,2018-03,3,495.5
+Office Supplies,2018-04,4,490.27
+Office Supplies,2018-05,5,500.1
+Office Supplies,2018-06,6,499.81
+Technology,2018-01,1,129.59
+Technology,2018-02,2,126.15
+Technology,2018-03,3,159.3
+Technology,2018-04,4,168.53
+Technology,2018-05,5,175.64
+Technology,2018-06,6,167.68
